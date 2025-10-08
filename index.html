@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Vaulta Prototype v1.0 — CFO Technology</title>
+
+  <!-- Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js CDN (for analytics) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* -------------------------
+       CSS VARIABLES & BASE
+       ------------------------- */
+    :root{
+      --green: #0AA83F;
+      --dark-1: #111;
+      --muted: #6b6b6b;
+      --bg-light: #ffffff;
+      --bg-dark: #0f1113;
+      --card-shadow: 0 8px 22px rgba(17,17,17,0.06);
+      --radius: 14px;
+    }
+
+    /* theme-aware variables */
+    [data-theme="light"]{
+      --bg: var(--bg-light);
+      --text: var(--dark-1);
+      --input-bg: #f8f8f8;
+      --card-bg: #fff;
+    }
+    [data-theme="dark"]{
+      --bg: var(--bg-dark);
+      --text: #ffffff;
+      --input-bg: #151619;
+      --card-bg: #121315;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background:var(--bg);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* -------------------------
+       DEVICE FRAME (mobile-like)
+       ------------------------- */
+    .device{
+      width: min(420px, 96vw);
+      max-width:420px;
+      height: min(920px, 96vh);
+      border-radius:22px;
+      background:var(--card-bg);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.12);
+      overflow:hidden;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+    }
+    .app-screen{width:100%;height:100%;position:relative;overflow:hidden}
+
+    /* -------------------------
+       SPLASH
+       ------------------------- */
+    .splash{
+      width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:12px;padding:28px;background:var(--bg);transition:opacity .4s ease;
+      z-index:40;
+    }
+    .vaulta-text{
+      display:flex;align-items:center;gap:12px;font-weight:700;font-size:28px;color:var(--text);
+    }
+    .vaulta-badge{
+      width:64px;height:64px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:22px;
+      color:#fff;background:linear-gradient(135deg,var(--green),#0ec76a);box-shadow:0 10px 30px rgba(10,168,63,0.14);
+      transform-origin:center;
+      animation:vPulse 1700ms infinite;
+    }
+    @keyframes vPulse{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+    /* rotating ring loader (behind the ₦) */
+    .loader-wrap{width:120px;height:120px;display:grid;place-items:center}
+    .tagline{color:var(--muted);font-size:13px;text-align:center;max-width:86%;}
+    .splash-footer{position:absolute;bottom:18px;left:0;right:0;text-align:center;font-size:11px;color:var(--muted)}
+
+    /* -------------------------
+       LOGIN (CENTERED)
+       ------------------------- */
+    .login-screen{
+      display:none;
+      width:100%;height:100%;padding:22px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+    }
+
+    .login-box{
+      width:92%;max-width:360px;background:var(--card-bg);border-radius:16px;padding:18px;
+      box-shadow:var(--card-shadow);border:1px solid rgba(0,0,0,0.04);
+      display:flex;flex-direction:column;gap:12px;align-items:center;
+    }
+    .login-title{font-weight:700;font-size:20px;text-align:center}
+    .login-sub{font-size:13px;color:var(--muted);text-align:center}
+    .login-input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:var(--input-bg);color:var(--text)}
+    .login-actions{display:flex;gap:10px;width:100%;margin-top:6px}
+    .btn{flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+    .btn-primary{background:var(--green);color:#fff}
+    .btn-ghost{background:transparent;border:1px solid rgba(0,0,0,0.06);color:var(--text)}
+
+    .theme-btn{
+      position:absolute;top:14px;right:16px;background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--text)
+    }
+
+    /* -------------------------
+       DASHBOARD
+       ------------------------- */
+    .dashboard{display:none;padding:18px;height:100%;overflow:auto}
+    .dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .dash-title{font-weight:800;font-size:18px}
+    .profile-wrap{position:relative}
+    .profile-btn{
+      width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--input-bg);border:none;cursor:pointer;
+      color:var(--text);font-weight:700;
+    }
+
+    /* PROFILE DROPDOWN (slide down) */
+    .profile-dropdown{
+      position:absolute;right:0;top:56px;width:220px;border-radius:12px;background:var(--card-bg);
+      box-shadow:0 18px 40px rgba(0,0,0,0.12);overflow:hidden;transform-origin:top center;
+      transform:translateY(-15px) scale(.98);opacity:0;pointer-events:none;transition:transform .26s ease, opacity .26s ease;
+      border:1px solid rgba(0,0,0,0.05);
+    }
+    .profile-dropdown.open{transform:translateY(0) scale(1);opacity:1;pointer-events:auto}
+    .profile-dropdown .item{padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,0.04)}
+    .profile-dropdown .item:last-child{border-bottom:none}
+    .profile-dropdown .item:hover{background:rgba(0,0,0,0.03)}
+
+    /* CHART AREA (fixed height) */
+    .analytics-card{background:var(--card-bg);border-radius:12px;padding:12px;box-shadow:var(--card-shadow);margin-bottom:12px;border:1px solid rgba(0,0,0,0.04)}
+    .chart-wrap{width:100%;height:220px;max-height:220px}
+
+    /* ACTIONS */
+    .actions{display:flex;gap:10px;margin-bottom:14px}
+    .action-btn{flex:1;padding:12px;border-radius:12px;border:1px solid rgba(0,0,0,0.06);background:var(--input-bg);font-weight:700;cursor:pointer}
+
+    /* TRANSACTIONS - simple list */
+    .tx-list{display:flex;flex-direction:column;gap:10px}
+    .tx-item{display:flex;justify-content:space-between;padding:12px;border-radius:12px;background:var(--card-bg);border:1px solid rgba(0,0,0,0.04)}
+
+    /* POPUP / MODAL */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.42);display:none;align-items:center;justify-content:center;z-index:80}
+    .modal{width:92%;max-width:400px;background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.05)}
+    .bank-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .bank-item{padding:10px;border-radius:10px;background:var(--input-bg);cursor:pointer}
+
+    /* SUCCESS TOAST */
+    .toast{
+      position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:var(--green);color:#fff;padding:12px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.2);z-index:90;
+      opacity:0;pointer-events:none;transition:opacity .22s ease,transform .22s ease;
+    }
+    .toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+
+    /* FOOTER */
+    .app-footer{position:relative;padding:16px 10px;margin-top:10px;text-align:center;color:var(--muted);font-size:13px}
+    .app-footer .copyright{font-weight:700;color:var(--text);margin-bottom:6px}
+
+    /* responsive tweaks */
+    @media (max-width:420px){
+      .device{height:94vh;border-radius:18px}
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="device" role="application" aria-label="Vaulta prototype">
+    <div class="app-screen">
+
+      <!-- SPLASH -->
+      <div id="splash" class="splash" role="status" aria-live="polite">
+        <div class="vaulta-text">
+          <div class="vaulta-badge" aria-hidden="true">₦</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start">
+            <div style="font-size:20px">Vaulta</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Your Money, Connected</div>
+          </div>
+        </div>
+
+        <div class="loader-wrap" aria-hidden="true">
+          <!-- rotating ring -->
+          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g" x1="0" x2="1">
+                <stop offset="0" stop-color="#0AA83F"/><stop offset="1" stop-color="#0ec76a"/>
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="46" stroke="url(#g)" stroke-width="10" stroke-linecap="round" stroke-dasharray="76 180" transform="rotate(-90 60 60)"></circle>
+            <text x="50%" y="55%" text-anchor="middle" font-size="28" font-weight="700" fill="#0AA83F">₦</text>
+          </svg>
+        </div>
+
+        <div class="tagline">Banking the Smart Way — Powered by CFO Technology</div>
+        <div class="splash-footer">Developed by CFO Technology</div>
+      </div>
+
+      <!-- LOGIN -->
+      <main id="loginScreen" class="login-screen" aria-hidden="true">
+        <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">🌙</button>
+
+        <div class="login-box" role="form" aria-labelledby="loginTitle">
+          <div style="text-align:center">
+            <div id="loginTitle" class="login-title">Welcome Back</div>
+            <div class="login-sub">Login to access your Vaulta account</div>
+          </div>
+
+          <input id="inputUser" class="login-input" placeholder="Phone or email" aria-label="username" />
+          <input id="inputPass" class="login-input" placeholder="Password" type="password" aria-label="password" />
+          <div class="login-actions" style="margin-top:6px">
+            <button id="btnLogin" class="btn btn-primary">Login</button>
+            <button id="btnBank" class="btn btn-ghost">Continue with Bank</button>
+          </div>
+          <div style="width:100%;display:flex;justify-content:center;margin-top:8px">
+            <button id="btnSignup" class="btn btn-ghost" style="width:60%">Sign Up</button>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">This is a visual prototype — no real banking actions.</div>
+        </div>
+      </main>
+
+      <!-- DASHBOARD -->
+      <section id="dashboardScreen" class="dashboard" aria-hidden="true">
+        <div class="dash-header">
+          <div>
+            <div style="font-size:13px;color:var(--muted)">Good afternoon,</div>
+            <div class="dash-title">Vaulta Dashboard</div>
+          </div>
+
+          <div class="profile-wrap">
+            <button id="profileBtn" class="profile-btn" aria-haspopup="true" aria-expanded="false">P</button>
+
+            <div id="profileDropdown" class="profile-dropdown" role="menu" aria-hidden="true">
+              <div class="item" id="viewProfile">👤 View Profile</div>
+              <div class="item" id="settings">⚙️ Settings</div>
+              <div class="item" id="logoutBtn">🚪 Logout</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- analytics card -->
+        <div class="analytics-card" aria-hidden="false">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div style="font-weight:700">Vault Analytics</div>
+            <div style="font-size:12px;color:var(--muted)">Last 30 days</div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="vaultChart" style="width:100%;height:100%"></canvas>
+          </div>
+        </div>
+
+        <!-- actions -->
+        <div class="actions" aria-hidden="false">
+          <button id="depositBtn" class="action-btn">Deposit</button>
+          <button id="withdrawBtn" class="action-btn">Withdraw</button>
+          <button id="vaultBtn" class="action-btn">Vault</button>
+        </div>
+
+        <!-- transactions -->
+        <div style="margin-top:6px;font-weight:700;margin-bottom:8px">Recent Transactions</div>
+        <div class="tx-list" id="txList" aria-hidden="false">
+          <!-- items inserted by JS -->
+        </div>
+
+        <div class="app-footer" aria-hidden="false">
+          <div class="copyright">© 2025 Vaulta</div>
+          <div class="developed">Developed by CFO Technology</div>
+        </div>
+      </section>
+
+      <!-- MODALS -->
+      <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-hidden="true">
+        <div id="modal" class="modal" role="document">
+          <!-- content injected dynamically -->
+        </div>
+      </div>
+
+      <!-- TOAST -->
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      // ---------- state ----------
+      const root = document.documentElement;
+      const body = document.body;
+      let theme = 'light'; // light / dark
+      document.body.setAttribute('data-theme', 'light');
+
+      // ---------- elements ----------
+      const splash = document.getElementById('splash');
+      const loginScreen = document.getElementById('loginScreen');
+      const dashboardScreen = document.getElementById('dashboardScreen');
+      const themeBtn = document.getElementById('themeBtn');
+      const modalBackdrop = document.getElementById('modalBackdrop');
+      const modal = document.getElementById('modal');
+      const toast = document.getElementById('toast');
+      const profileBtn = document.getElementById('profileBtn');
+      const profileDropdown = document.getElementById('profileDropdown');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const depositBtn = document.getElementById('depositBtn');
+      const withdrawBtn = document.getElementById('withdrawBtn');
+      const vaultBtn = document.getElementById('vaultBtn');
+      const btnBank = document.getElementById('btnBank');
+      const btnSignup = document.getElementById('btnSignup');
+      const btnLogin = document.getElementById('btnLogin');
+      const txList = document.getElementById('txList');
+
+      // ---------- demo data ----------
+      const demoTx = [
+        { id:'TXN1001', title:'Salary', date:'Oct 01, 2025', amount:120000, type:'in' },
+        { id:'TXN1002', title:'Transfer to Tunde', date:'Sep 28, 2025', amount:-5000, type:'out' },
+        { id:'TXN1003', title:'Groceries', date:'Sep 20, 2025', amount:-8800, type:'out' },
+        { id:'TXN1004', title:'Airtime Topup', date:'Sep 17, 2025', amount:-1200, type:'out' },
+      ];
+
+      // ---------- helpers ----------
+      function showLogin(){ loginScreen.style.display='flex'; dashboardScreen.style.display='none'; }
+      function showDashboard(){ loginScreen.style.display='none'; dashboardScreen.style.display='block'; }
+      function showSplash(){ splash.style.display='flex'; loginScreen.style.display='none'; dashboardScreen.style.display='none'; }
+      function showModal(html){
+        modal.innerHTML = html;
+        modalBackdrop.style.display = 'flex';
+        modalBackdrop.setAttribute('aria-hidden','false');
+      }
+      function closeModal(){
+        modalBackdrop.style.display = 'none';
+        modalBackdrop.setAttribute('aria-hidden','true');
+        modal.innerHTML = '';
+      }
+      function showToast(msg, ms=2200){
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(()=>{ toast.classList.remove('show'); }, ms);
+      }
+
+      // ---------- splash (10s) ----------
+      showSplash();
+      setTimeout(()=> {
+        splash.style.opacity = '0';
+        setTimeout(()=>{ splash.style.display='none'; showLogin(); }, 420);
+      }, 10000); // 10 seconds
+
+      // ---------- theme toggle (icon & input color behavior) ----------
+      function applyTheme(t){
+        theme = t;
+        document.body.setAttribute('data-theme', t);
+        themeBtn.textContent = (t === 'dark') ? '🌞' : '🌙';
+      }
+      themeBtn.addEventListener('click', ()=> applyTheme(theme === 'light' ? 'dark' : 'light'));
+
+      // ---------- login (demo) ----------
+      btnLogin.addEventListener('click', ()=>{
+        // simple simulated login (no validation needed), keep input values intact
+        showDashboard();
+        renderTransactions();
+        renderChart(); // lazy render chart when dashboard shown
+      });
+
+      // ---------- bank popup (Continue with Bank) ----------
+      btnBank.addEventListener('click', ()=>{
+        showModal(`
+          <div style="font-weight:800;margin-bottom:8px">Select your bank</div>
+          <div class="bank-list" role="list">
+            <div class="bank-item">Access Bank</div>
+            <div class="bank-item">GTBank</div>
+            <div class="bank-item">UBA</div>
+            <div class="bank-item">First Bank</div>
+            <div class="bank-item">Zenith Bank</div>
+            <div class="bank-item">Fidelity Bank</div>
+            <div class="bank-item">Wema Bank</div>
+          </div>
+          <div style="margin-top:12px;display:flex;justify-content:center">
+            <button class="btn btn-ghost" onclick="document.querySelector('#modal').parentNode.style.display='none' ; document.querySelector('#modal').innerHTML=''">Close</button>
+          </div>
+        `);
+      });
+
+      // ---------- sign up popup ----------
+      btnSignup.addEventListener('click', ()=>{
+        showModal(`
+          <div style="font-weight:800;margin-bottom:8px">Create Vaulta Account</div>
+          <input class="login-input" placeholder="Full name" style="margin-bottom:8px"/>
+          <input class="login-input" placeholder="Email" style="margin-bottom:8px"/>
+          <input class="login-input" placeholder="Phone" style="margin-bottom:8px"/>
+          <input class="login-input" placeholder="Password" style="margin-bottom:8px"/>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-ghost" onclick="document.querySelector('#modal').parentNode.style.display='none';document.querySelector('#modal').innerHTML=''">Cancel</button>
+            <button class="btn btn-primary" onclick="document.querySelector('#modal').innerHTML=''; alert('Account pressed — prototype')">Create</button>
+          </div>
+        `);
+      });
+
+      // ---------- modal backdrop click to close ----------
+      modalBackdrop.addEventListener('click', (e)=>{
+        if(e.target === modalBackdrop) closeModal();
+      });
+
+      // ---------- simulated actions (processing + success) ----------
+      function simulateFlow(name){
+        showModal(`<div style="text-align:center"><div style="font-weight:800">${name}</div><div style="margin-top:10px;color:var(--muted)">Processing...</div><div style="margin-top:18px"><svg width="64" height="64" viewBox="0 0 120 120"><defs><linearGradient id="g2" x1="0" x2="1"><stop offset="0" stop-color="#0AA83F"/><stop offset="1" stop-color="#0ec76a"/></linearGradient></defs><circle cx="60" cy="60" r="36" stroke="url(#g2)" stroke-width="8" stroke-dasharray="64 200" transform="rotate(-90 60 60)"/></svg></div></div>`);
+        setTimeout(()=>{
+          closeModal();
+          showToast(`${name} completed successfully`);
+          // optionally push a new tx to list (simulate)
+          if(name !== 'Vault'){
+            const id = 'TXN' + Math.floor(Math.random()*900000+1000);
+            const amt = (name === 'Deposit') ? 5000 : (name === 'Withdraw' ? -3000 : 0);
+            demoTx.unshift({ id, title:name, date:new Date().toLocaleDateString(), amount:amt, type: amt>=0 ? 'in' : 'out' });
+            renderTransactions();
+          }
+        }, 1800);
+      }
+
+      depositBtn.addEventListener('click', ()=> simulateFlow('Deposit'));
+      withdrawBtn.addEventListener('click', ()=> simulateFlow('Withdraw'));
+      vaultBtn.addEventListener('click', ()=> simulateFlow('Vault'));
+
+      // ---------- transactions rendering ----------
+      function renderTransactions(){
+        txList.innerHTML = '';
+        demoTx.slice(0,8).forEach(tx=>{
+          const div = document.createElement('div');
+          div.className = 'tx-item';
+          div.innerHTML = `<div><div style="font-weight:700">${tx.title}</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${tx.date}</div></div><div style="font-weight:700;color:${tx.amount<0? '#e04d4d': 'var(--green)'}">${tx.amount<0? '-₦'+Math.abs(tx.amount) : '₦'+tx.amount}</div>`;
+          div.addEventListener('click', ()=> openTxDetail(tx));
+          txList.appendChild(div);
+        });
+      }
+
+      function openTxDetail(tx){
+        showModal(`
+          <div style="font-weight:800">${tx.title}</div>
+          <div style="margin-top:8px;font-size:18px;font-weight:700">${tx.amount<0? '-₦'+Math.abs(tx.amount):'₦'+tx.amount}</div>
+          <div style="margin-top:8px;color:var(--muted)">${tx.date}</div>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
+            <button class="btn btn-ghost" onclick="document.querySelector('#modal').parentNode.style.display='none';document.querySelector('#modal').innerHTML=''">Close</button>
+            <button class="btn btn-primary" onclick="alert('Save receipt — prototype')">Save Receipt</button>
+          </div>
+        `);
+      }
+
+      // ---------- profile dropdown (slide down) ----------
+      profileBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const open = profileDropdown.classList.toggle('open');
+        profileBtn.setAttribute('aria-expanded', open ? 'true':'false');
+      });
+
+      // close dropdown on outside click
+      document.addEventListener('click', (e)=>{
+        if(!profileDropdown.contains(e.target) && !profileBtn.contains(e.target)){
+          profileDropdown.classList.remove('open');
+          profileBtn.setAttribute('aria-expanded','false');
+        }
+      });
+
+      // profile menu actions
+      document.getElementById('viewProfile').addEventListener('click', ()=> {
+        showModal(`<div style="font-weight:800">Profile</div><div style="margin-top:8px"><div><strong>Name:</strong> Progress</div><div style="margin-top:6px"><strong>Email:</strong> user@vaulta.ng</div></div><div style="margin-top:12px"><button class="btn btn-ghost" onclick="document.querySelector('#modal').parentNode.style.display='none';document.querySelector('#modal').innerHTML=''">Close</button></div>`);
+      });
+      document.getElementById('settings').addEventListener('click', ()=> {
+        showModal(`<div style="font-weight:800">Settings</div><div style="margin-top:8px;color:var(--muted)">Settings placeholder (prototype)</div><div style="margin-top:12px"><button class="btn btn-ghost" onclick="document.querySelector('#modal').parentNode.style.display='none';document.querySelector('#modal').innerHTML=''">Close</button></div>`);
+      });
+      logoutBtn.addEventListener('click', ()=> {
+        profileDropdown.classList.remove('open');
+        showLogin();
+      });
+
+      // ---------- chart (Chart.js) ----------
+      let chartInstance = null;
+      function renderChart(){
+        const ctx = document.getElementById('vaultChart').getContext('2d');
+        const labels = ['D1','D5','D10','D15','D20','D25','D30'];
+        const inflow = [12000,5000,8000,15000,6000,9000,7000];
+        const outflow = [4000,3000,2000,9000,1200,600,3000];
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+          type:'bar',
+          data:{
+            labels,
+            datasets:[
+              { label:'Inflow', data:inflow, backgroundColor:'rgba(10,168,63,0.9)' },
+              { label:'Outflow', data:outflow, backgroundColor:'rgba(224,77,77,0.9)' }
+            ]
+          },
+          options:{
+            maintainAspectRatio:false,
+            scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true } },
+            plugins:{ legend:{ position:'bottom' } }
+          }
+        });
+      }
+
+      // ---------- accessibility / keyboard ESC to close modal ----------
+      document.addEventListener('keydown', (e)=>{
+        if(e.key === 'Escape'){
+          if(modalBackdrop.style.display === 'flex') closeModal();
+          profileDropdown.classList.remove('open');
+        }
+      });
+
+      // ---------- initial placeholder tx render (if dashboard shown later) ----------
+      function warmStart(){
+        // nothing to do yet
+      }
+      warmStart();
+
+    })();
+  </script>
+</body>
+</html>
