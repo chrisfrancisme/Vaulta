@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Vaulta Prototype v1.0 — CFO Technology</title>
+
+  <!-- Poppins font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js for Vault analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --naira-green:#0AA83F;
+      --dark:#222222;
+      --bg:#ffffff;
+      --muted:#6b6b6b;
+      --card-shadow: 0 6px 18px rgba(34,34,34,0.06);
+      --radius:14px;
+    }
+    [data-theme="dark"] {
+      --bg:#0f0f10;
+      --dark:#ffffff;
+      --muted:#bdbdbd;
+      --card-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    }
+
+    /* Reset */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background:var(--bg);
+      color:var(--dark);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    /* Device container (responsive for mobile) */
+    .device {
+      width: min(420px, 96vw);
+      max-width:420px;
+      height: min(920px, 96vh);
+      background:var(--bg);
+      border-radius:20px;
+      box-shadow: 0 12px 40px rgba(10,10,10,0.12);
+      overflow:hidden;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .screen { width:100%; height:100%; overflow:hidden; position:relative; }
+
+    /* Header area used on multiple screens */
+    .header{
+      padding:18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    /* Splash */
+    .splash {
+      background:var(--bg);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+      padding:32px;
+      height:100%;
+      text-align:center;
+    }
+    .vaulta-logo { display:flex;align-items:center;gap:12px;font-weight:700;color:var(--dark);font-size:28px;letter-spacing:0.3px; }
+    .v-mark{
+      width:64px;height:64px;border-radius:14px;display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--naira-green),#0ec76a);
+      color:#fff;font-weight:800;font-size:22px;box-shadow: 0 8px 24px rgba(10,168,63,0.18);
+      transform-origin:center;
+      animation: vPulse 1700ms infinite;
+    }
+    @keyframes vPulse {
+      0%{transform:scale(1)}
+      50%{transform:scale(1.06)}
+      100%{transform:scale(1)}
+    }
+    /* rotating loader circle */
+    #loader circle { transform-origin:center; animation: rotateCircle 2000ms linear infinite; }
+    @keyframes rotateCircle{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    .tagline{color:var(--muted);font-size:13px;max-width:88%;}
+    .splash-footer{position:absolute;bottom:16px;left:0;right:0;text-align:center;font-size:11px;color:var(--muted);}
+
+    /* Login */
+    .login { padding:20px; display:flex; flex-direction:column; gap:14px; height:100%; overflow:auto; }
+    .input{ background:#fbfbfb;border:1px solid #eee;padding:12px;border-radius:12px;font-size:15px;color:var(--dark); box-shadow:var(--card-shadow); }
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:12px;border:none;font-weight:700;font-size:15px;cursor:pointer}
+    .btn-primary{background:var(--naira-green);color:#fff}
+    .btn-ghost{background:transparent;border:1px solid #eee;color:var(--dark);}
+
+    .small{font-size:12px;color:var(--muted)}
+    .muted{color:var(--muted)}
+
+    /* Dashboard */
+    .balance-card{margin:12px; padding:18px;border-radius:16px;border:1px solid #f3f3f3;box-shadow:var(--card-shadow);background:var(--bg)}
+    .balance-title{font-size:13px;color:var(--muted)}
+    .balance-amount{font-size:26px;font-weight:800;margin-top:6px}
+    .quick-actions{display:flex;gap:10px;margin-top:12px}
+    .action-btn{flex:1;padding:10px;border-radius:12px;text-align:center;font-weight:700;background:#fff;border:1px solid #f0f0f0;box-shadow: 0 8px 18px rgba(10,10,10,0.04);cursor:pointer}
+
+    .transactions{padding:8px 12px 140px 12px}
+    .tx-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;margin-bottom:10px;border:1px solid #f4f4f4;background:var(--bg);box-shadow:var(--card-shadow);cursor:pointer}
+    .tx-left{display:flex;align-items:center;gap:12px}
+    .tx-icon{width:46px;height:46px;border-radius:12px;background:#f6f6f6;display:grid;place-items:center;color:var(--naira-green);font-weight:700}
+    .tx-amount{font-weight:700}
+
+    .send-money{position:absolute;left:50%;transform:translateX(-50%);bottom:82px;width:84%;border-radius:46px;padding:14px 18px;background:var(--naira-green);color:white;font-weight:800;text-align:center;box-shadow: 0 12px 28px rgba(10,168,63,0.18);cursor:pointer}
+
+    /* Modal overlay */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.36);display:none;align-items:flex-end;justify-content:center;z-index:60;backdrop-filter:blur(4px)}
+    .modal{width:100%;max-width:420px;background:var(--bg);border-top-left-radius:18px;border-top-right-radius:18px;padding:16px;box-shadow:0 -12px 30px rgba(0,0,0,0.12);transform:translateY(40px);transition:transform .28s ease,opacity .28s ease}
+    .modal.show{transform:translateY(0)}
+
+    .opt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1px solid #f4f4f4;margin-bottom:10px;cursor:pointer}
+    .close-x{font-weight:700;color:#999;cursor:pointer}
+
+    /* Transaction detail card */
+    .detail-modal{width:92%;max-width:420px;background:var(--bg);border-radius:16px;padding:16px;margin-bottom:20px;box-shadow:var(--card-shadow)}
+    .meta-row{display:flex;justify-content:space-between;padding:8px 0;color:var(--muted);font-size:13px;border-bottom:1px dashed #f1f1f1}
+
+    /* Vault analytics */
+    .analytics{margin:12px;background:var(--bg);padding:12px;border-radius:12px;border:1px solid #f4f4f4;box-shadow:var(--card-shadow)}
+
+    /* footer */
+    .footer{position:fixed;left:0;right:0;bottom:8px;text-align:center;font-size:11px;color:var(--muted)}
+
+    @media (max-width:420px){
+      .device{height:94vh;border-radius:18px}
+      .send-money{bottom:78px}
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="device" role="application" aria-label="Vaulta prototype">
+    <div class="screen" id="app">
+
+      <!-- SPLASH -->
+      <section id="splash" class="splash" aria-hidden="false" >
+        <div>
+          <div class="vaulta-logo" aria-hidden="true">
+            <div class="v-mark" id="vmark">V</div>
+            <div style="display:flex;flex-direction:column;line-height:1">
+              <span style="font-size:20px">Vaulta</span>
+              <span class="small" style="font-size:11px;color:var(--muted);font-weight:600">Your Money, Connected</span>
+            </div>
+          </div>
+
+          <div style="margin-top:18px;">
+            <!-- loader with rotating ring and ₦ at center -->
+            <svg id="loader" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin:auto;display:block;">
+              <defs><linearGradient id="g1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#0AA83F"/><stop offset="1" stop-color="#0ec76a"/></linearGradient></defs>
+              <circle cx="60" cy="60" r="46" stroke="url(#g1)" stroke-width="10" stroke-linecap="round" stroke-dasharray="72 200" transform="rotate(-90 60 60)"></circle>
+              <text x="50%" y="53%" text-anchor="middle" font-weight="700" font-size="28" fill="#0AA83F">₦</text>
+            </svg>
+          </div>
+
+          <div class="tagline" style="margin-top:16px">Banking the Smart Way — Powered by CFO Technology</div>
+        </div>
+
+        <div class="splash-footer">Developed by CFO Technology</div>
+      </section>
+
+      <!-- LOGIN -->
+      <section id="login" class="login" style="display:none" aria-hidden="true">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:20px;font-weight:700">Welcome back</div>
+            <div class="small muted">Login to access your Vaulta accounts</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="theme-toggle" class="btn btn-ghost" title="Toggle theme">Dark</button>
+            <div style="width:44px;height:44px;border-radius:10px;background:#f6f6f6;display:grid;place-items:center;font-weight:700;color:var(--naira-green)">V</div>
+          </div>
+        </div>
+
+        <div style="padding:8px 2px 0 2px;display:flex;flex-direction:column;gap:12px;margin-top:12px">
+          <input class="input" id="inp-user" placeholder="Demo: user@vaulta.ng" value="user@vaulta.ng" />
+          <input class="input" id="inp-pass" placeholder="Demo: 1234" type="password" value="1234" />
+          <button class="btn btn-primary" id="btn-login">Login</button>
+
+          <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:6px">
+            <button class="btn btn-ghost" id="btn-bank">Continue with Bank</button>
+            <button class="btn btn-ghost" id="btn-signup">Sign Up</button>
+          </div>
+
+          <div class="small" style="text-align:center;margin-top:6px;color:var(--muted)">Tip: Use demo credentials to preview the prototype.</div>
+        </div>
+      </section>
+
+      <!-- HOME / DASHBOARD -->
+      <section id="home" style="display:none;height:100%;overflow:auto;" aria-hidden="true">
+        <div class="header">
+          <div>
+            <div style="font-size:13px;color:var(--muted)">Good afternoon, Progress</div>
+            <div style="font-weight:800;font-size:18px">Vaulta Dashboard</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end">
+            <div class="small">Total</div>
+            <div style="font-weight:800">₦ <span id="total-balance">245,000.00</span></div>
+          </div>
+        </div>
+
+        <div class="balance-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="balance-title">Available Balance</div>
+              <div class="balance-amount">₦ <span id="available">245,000.00</span></div>
+            </div>
+            <div style="text-align:right">
+              <div class="small">Vaulta Balance</div>
+              <div style="font-weight:700;color:var(--naira-green)">₦ <span id="vault-amount">40,000</span></div>
+            </div>
+          </div>
+
+          <div class="quick-actions" style="margin-top:14px">
+            <div class="action-btn" id="btn-deposit">Deposit</div>
+            <div class="action-btn" id="btn-withdraw">Withdraw</div>
+            <div class="action-btn" id="btn-vault">Vault</div>
+          </div>
+        </div>
+
+        <div class="analytics" aria-hidden="false">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-weight:700">Vault Analytics</div>
+            <div class="small muted">Last 30 days</div>
+          </div>
+          <canvas id="chart" height="80"></canvas>
+        </div>
+
+        <div style="padding:8px 12px 0 12px;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:700">Recent Transactions</div>
+          <div class="small muted" id="see-all">See all</div>
+        </div>
+
+        <div class="transactions" id="tx-list"></div>
+
+        <div class="send-money" id="btn-send">Send Money</div>
+
+        <div class="splash-footer footer">Developed by CFO Technology</div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Overlays / Modals -->
+  <div id="overlay" class="overlay" aria-hidden="true">
+    <div class="modal" id="modal-root" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <script>
+  (function(){
+    // Demo data and utilities
+    const demoUser = { email:'user@vaulta.ng', pass:'1234' };
+    const txData = [
+      { id:'TXN1001', title:'Salary', date:'Oct 1, 2025 10:05', amount:120000, type:'in', note:'Payroll' },
+      { id:'TXN1002', title:'Transfer to Tunde', date:'Sep 28, 2025 08:22', amount:-5000, type:'out', note:'Sent' },
+      { id:'TXN1003', title:'Groceries', date:'Sep 20, 2025 13:12', amount:-8800, type:'out', note:'Store' },
+      { id:'TXN1004', title:'Airtime Topup', date:'Sep 17, 2025 09:10', amount:-1200, type:'out', note:'MTN' },
+      { id:'TXN1005', title:'Side Gig', date:'Sep 12, 2025 15:40', amount:30000, type:'in', note:'Freelance' },
+    ];
+
+    const splash = document.getElementById('splash');
+    const login = document.getElementById('login');
+    const home = document.getElementById('home');
+    const overlay = document.getElementById('overlay');
+    const modalRoot = document.getElementById('modal-root');
+    const themeToggle = document.getElementById('theme-toggle');
+
+    // Theme toggle
+    function setTheme(t){
+      document.body.setAttribute('data-theme', t);
+      themeToggle.textContent = t === 'dark' ? 'Light' : 'Dark';
+    }
+    let currentTheme = 'light';
+    themeToggle.addEventListener('click', ()=>{
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      setTheme(currentTheme);
+    });
+    setTheme('light');
+
+    // Splash loader rotates the ring (SVG animation via CSS)
+    // Auto transition to login
+    setTimeout(()=> {
+      splash.style.display = 'none';
+      login.style.display = 'flex';
+      login.setAttribute('aria-hidden','false');
+      splash.setAttribute('aria-hidden','true');
+    }, 2000);
+
+    // Login logic (demo)
+    document.getElementById('btn-login').addEventListener('click', ()=>{
+      const u = document.getElementById('inp-user').value.trim();
+      const p = document.getElementById('inp-pass').value.trim();
+      if(u === demoUser.email && p === demoUser.pass){
+        // proceed
+        login.style.display = 'none';
+        home.style.display = 'block';
+        login.setAttribute('aria-hidden','true');
+        home.setAttribute('aria-hidden','false');
+        renderTransactions();
+        renderChart();
+      } else {
+        alert('Invalid demo credentials. Try: user@vaulta.ng / 1234');
+      }
+    });
+
+    document.getElementById('btn-bank').addEventListener('click', ()=> alert('Continue with Bank (visual only)'));
+    document.getElementById('btn-signup').addEventListener('click', ()=> alert('Sign Up (visual only)'));
+
+    // Modal show/hide
+    const showModal = (html)=> {
+      modalRoot.innerHTML = html;
+      overlay.style.display = 'flex';
+      overlay.setAttribute('aria-hidden','false');
+      setTimeout(()=> modalRoot.classList.add('show'), 8);
+    };
+    const hideModal = ()=> {
+      modalRoot.classList.remove('show');
+      setTimeout(()=>{ overlay.style.display='none'; overlay.setAttribute('aria-hidden','true'); modalRoot.innerHTML=''; }, 260);
+    };
+    window.hideModal = hideModal;
+
+    // Deposit/Withdraw/Vault handlers
+    document.getElementById('btn-deposit').addEventListener('click', ()=> {
+      showModal(`
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3>Deposit</h3><div class="close-x" onclick="hideModal()">×</div>
+        </div>
+        <p class="small muted">Choose how you'd like to add money to Vaulta (visual only)</p>
+        <div class="opt" id="m-bank">Bank Transfer <div style="margin-left:auto" class="small muted">Instant</div></div>
+        <div class="opt" id="m-card">Card <div style="margin-left:auto" class="small muted">Visa/Mastercard</div></div>
+        <div class="opt" id="m-agent">Agent <div style="margin-left:auto" class="small muted">Cash-in</div></div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+          <button class="btn btn-primary" id="m-proceed">Proceed</button>
+        </div>
+      `);
+      document.getElementById('m-proceed').onclick = ()=> {
+        simulateProcessing('Processing deposit...', ()=> {
+          alert('Deposit simulated (prototype).');
+          hideModal();
+        });
+      };
+    });
+
+    document.getElementById('btn-withdraw').addEventListener('click', ()=> {
+      showModal(`
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3>Withdraw</h3><div class="close-x" onclick="hideModal()">×</div>
+        </div>
+        <p class="small muted">Choose withdraw option (visual only)</p>
+        <div class="opt" id="w-bank">Transfer to Bank <div style="margin-left:auto" class="small muted">₦</div></div>
+        <div class="opt" id="w-agent">Withdraw via Agent <div style="margin-left:auto" class="small muted">Cash-out</div></div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+          <button class="btn btn-primary" id="w-proceed">Proceed</button>
+        </div>
+      `);
+      document.getElementById('w-proceed').onclick = ()=> {
+        simulateProcessing('Processing withdrawal...', ()=> {
+          alert('Withdraw simulated (prototype).');
+          hideModal();
+        });
+      };
+    });
+
+    document.getElementById('btn-vault').addEventListener('click', ()=> {
+      showModal(`
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3>Create Vault</h3><div class="close-x" onclick="hideModal()">×</div>
+        </div>
+        <p class="small muted">Create a savings goal</p>
+        <div style="margin-top:10px;margin-bottom:6px"><input class="input" id="vault-name" placeholder="Goal name e.g. School Fees" /></div>
+        <div style="display:flex;gap:10px"><input class="input" id="vault-target" placeholder="Target amount (₦)" /><input class="input" id="vault-duration" placeholder="Duration (months)" /></div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+          <button class="btn btn-primary" id="create-vault">Create Vault</button>
+        </div>
+      `);
+      document.getElementById('create-vault').onclick = ()=> {
+        const name = document.getElementById('vault-name').value || 'My Goal';
+        simulateProcessing('Creating vault...', ()=> {
+          alert(`Vault "${name}" created (prototype).`);
+          hideModal();
+        });
+      };
+    });
+
+    // Send Money
+    document.getElementById('btn-send').addEventListener('click', ()=> {
+      showModal(`
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3>Send Money</h3><div class="close-x" onclick="hideModal()">×</div>
+        </div>
+        <p class="small muted">Quick send (visual only)</p>
+        <div style="margin-top:8px"><input class="input" id="send-to" placeholder="Recipient (e.g. @Tunde or account)" /></div>
+        <div style="margin-top:8px;display:flex;gap:10px">
+          <input class="input" id="send-amt" placeholder="Amount (₦)" />
+          <input class="input" id="send-note" placeholder="Note" />
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn btn-ghost" onclick="hideModal()">Cancel</button>
+          <button class="btn btn-primary" id="send-now">Send</button>
+        </div>
+      `);
+      document.getElementById('send-now').onclick = ()=> {
+        const to = document.getElementById('send-to').value || 'Unknown';
+        const amt = document.getElementById('send-amt').value || '0';
+        simulateProcessing('Sending money...', ()=> {
+          // push fake tx to top
+          const id = 'TXN' + Math.floor(Math.random()*900000+1000);
+          txData.unshift({ id, title:`Transfer to ${to}`, date: new Date().toLocaleString(), amount:-Number(amt), type:'out', note:'Sent' });
+          updateBalances();
+          renderTransactions();
+          alert(`₦${amt} sent to ${to} (prototype).`);
+          hideModal();
+        });
+      };
+    });
+
+    // utility: show processing overlay
+    function simulateProcessing(text, cb){
+      showModal(`<div style="padding:18px"><div style="font-weight:800">${text}</div><div class="small muted" style="margin-top:8px">This is a simulated flow for the prototype.</div><div style="margin-top:16px;display:flex;justify-content:center"><svg width="64" height="64" viewBox="0 0 120 120"><defs><linearGradient id="g2" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#0AA83F"/><stop offset="1" stop-color="#0ec76a"/></linearGradient></defs><circle cx="60" cy="60" r="36" stroke="url(#g2)" stroke-width="8" stroke-dasharray="60 200" transform="rotate(-90 60 60)"/></svg></div></div>`);
+      setTimeout(()=> { cb(); }, 1400);
+    }
+
+    // Render transactions list
+    const txListEl = document.getElementById('tx-list');
+    function renderTransactions(){
+      txListEl.innerHTML = '';
+      txData.slice(0,8).forEach(tx=>{
+        const node = document.createElement('div');
+        node.className = 'tx-item';
+        node.tabIndex = 0;
+        node.dataset.txid = tx.id;
+        node.innerHTML = `
+          <div class="tx-left">
+            <div class="tx-icon">${tx.title.charAt(0)}</div>
+            <div class="tx-meta">
+              <div style="font-weight:700">${tx.title}</div>
+              <div class="muted small">${tx.date} • ${tx.note || ''}</div>
+            </div>
+          </div>
+          <div class="tx-amount" style="color:${tx.amount<0?'#e04d4d':'var(--naira-green)'}">${tx.amount<0?'-₦'+Math.abs(tx.amount):'₦'+tx.amount}</div>
+        `;
+        node.addEventListener('click', ()=> openTxDetail(tx.id));
+        txListEl.appendChild(node);
+      });
+    }
+
+    function openTxDetail(id){
+      const tx = txData.find(t=>t.id===id);
+      if(!tx) return;
+      showModal(`
+        <div class="detail-modal">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:800">${tx.title}</div>
+            <div class="small">${tx.amount<0?'Sent':'Received'}</div>
+          </div>
+          <div style="margin-top:10px;font-size:20px;font-weight:800">${tx.amount<0?('-₦'+Math.abs(tx.amount)):'₦'+tx.amount}</div>
+          <div style="margin-top:10px" class="muted small">Date • ${tx.date}</div>
+          <div class="meta-row"><div>Transaction ID</div><div>${tx.id}</div></div>
+          <div class="meta-row"><div>Reference</div><div>REF-${Math.floor(Math.random()*900000+100000)}</div></div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn btn-ghost" onclick="hideModal()">Close</button>
+            <button class="btn btn-primary" onclick="(function(){alert('Receipt saved — prototype only');hideModal();})()">Save Receipt</button>
+          </div>
+        </div>
+      `);
+    }
+
+    // Update balances based on txData
+    function updateBalances(){
+      const total = txData.reduce((s,t)=> s + Number(t.amount), 0) + 125000; // starting base to keep numbers nice
+      const vault = Number(document.getElementById('vault-amount').textContent);
+      document.getElementById('available').textContent = Number(total).toLocaleString();
+      document.getElementById('total-balance').textContent = Number(total + vault).toLocaleString();
+    }
+
+    // Chart (Vault analytics)
+    let chartInstance = null;
+    function renderChart(){
+      const ctx = document.getElementById('chart').getContext('2d');
+      const labels = ['Day 1','Day 5','Day10','Day15','Day20','Day25','Day30'];
+      const inflow = [10000,5000,12000,8000,4000,15000,7000];
+      const outflow = [4000,3000,2000,9000,1200,600,3000];
+      if(chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type:'bar',
+        data:{
+          labels,
+          datasets:[
+            { label:'Inflow', data:inflow, backgroundColor:'rgba(10,168,63,0.9)' },
+            { label:'Outflow', data:outflow, backgroundColor:'rgba(224,77,77,0.9)' }
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          scales:{ x:{ stacked:true }, y:{ stacked:true, ticks:{ beginAtZero:true } } },
+          plugins:{ legend:{ position:'bottom' } }
+        }
+      });
+    }
+
+    // initial updates
+    updateBalances();
+
+    // overlay click to close
+    overlay.addEventListener('click', (e)=> { if(e.target === overlay) hideModal(); });
+
+    // Keyboard ESC
+    document.addEventListener('keydown', (e)=> { if(e.key==='Escape' && overlay.style.display==='flex') hideModal(); });
+
+    // allow See all to show more txs
+    document.getElementById('see-all').addEventListener('click', ()=> {
+      alert('Full transaction list (prototype).');
+    });
+
+    // render initial txs once home visible
+    // But also make txs clickable when login completes - handled in login success callback
+
+  })();
+  </script>
+</body>
+</html>
